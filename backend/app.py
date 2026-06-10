@@ -2,8 +2,16 @@ from flask import Flask, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from models.user import db, User
 import bcrypt
+from flask_jwt_extended import (
+    JWTManager,
+    create_access_token,
+    jwt_required,
+    get_jwt_identity
+)
 
 app = Flask(__name__)
+
+app.config['JWT_SECRET_KEY'] = 'banking_secret_key_2026'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = \
 'mysql+pymysql://root:dnyanu%402027@localhost/banking_db'
@@ -11,6 +19,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = \
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
+
+jwt = JWTManager(app)
+
 
 @app.route('/')
 def home():
@@ -63,7 +74,18 @@ def login():
                 password.encode('utf-8'),
                 user.password.encode('utf-8')
             ):
-                return "Login Successful"
+
+                access_token = create_access_token(
+                    identity=user.email
+                )
+
+                return f"""
+                Login Successful!<br><br>
+
+                JWT Token:<br><br>
+
+                {access_token}
+                """
 
             return "Wrong Password"
 
@@ -75,6 +97,19 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     return render_template("dashboard.html")
+
+
+@app.route('/profile')
+@jwt_required()
+def profile():
+
+    current_user = get_jwt_identity()
+
+    return f"""
+    Welcome {current_user}<br><br>
+
+    Protected Route Access Granted
+    """
 
 
 if __name__ == "__main__":
