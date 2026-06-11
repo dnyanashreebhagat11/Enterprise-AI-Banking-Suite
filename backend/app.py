@@ -25,7 +25,18 @@ jwt = JWTManager(app)
 
 @app.route('/')
 def home():
-    return "Home Page"
+
+    return """
+    <h1>Enterprise AI Banking Suite</h1>
+
+    <br>
+
+    <a href='/register'>Register</a>
+
+    <br><br>
+
+    <a href='/login'>Login</a>
+    """
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -110,7 +121,36 @@ def profile():
 
     Protected Route Access Granted
     """
+@app.route('/user-info')
+@jwt_required()
+def user_info():
 
+    current_user = get_jwt_identity()
+
+    user = User.query.filter_by(
+        email=current_user
+    ).first()
+
+    return {
+        "name": user.name,
+        "email": user.email
+    }
+@app.route('/logout')
+def logout():
+
+    return """
+    Logout Successful
+    """
+@app.route('/dashboard-data')
+@jwt_required()
+def dashboard_data():
+
+    current_user = get_jwt_identity()
+
+    return {
+        "message": "Dashboard Access Granted",
+        "user": current_user
+    }
 
 if __name__ == "__main__":
     app.run(debug=True)
