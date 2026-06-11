@@ -1,3 +1,5 @@
+from flask_mail import Mail, Message
+import random
 from flask import Flask, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from models.user import db, User
@@ -10,6 +12,13 @@ from flask_jwt_extended import (
 )
 
 app = Flask(__name__)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+
+app.config['MAIL_USERNAME'] = 'dnyanashreebhagat@gmail.com'
+
+app.config['MAIL_PASSWORD'] = 'rucataxsjildqxjm'
 
 app.config['JWT_SECRET_KEY'] = 'banking_secret_key_2026'
 
@@ -21,7 +30,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
 jwt = JWTManager(app)
-
+mail = Mail(app)
+otp_storage = {}
 
 @app.route('/')
 def home():
@@ -151,6 +161,71 @@ def dashboard_data():
         "message": "Dashboard Access Granted",
         "user": current_user
     }
+@app.route('/send-otp/<email>')
+def send_otp(email):
 
+    otp = random.randint(100000, 999999)
+
+    otp_storage[email] = otp
+
+    print("Generated OTP:", otp)
+    print("OTP Storage:", otp_storage)
+
+    msg = Message(
+        "Banking OTP Verification",
+        sender=app.config['MAIL_USERNAME'],
+        recipients=[email]
+    )
+
+    msg.body = f"Your OTP is {otp}"
+
+    mail.send(msg)
+
+    return f"""
+    OTP Sent Successfully!<br><br>
+
+    Check your email inbox.<br><br>
+
+    Debug OTP: {otp}
+    """
+
+@app.route('/verify-otp/<email>/<otp>')
+def verify_otp(email, otp):
+
+    stored_otp = otp_storage.get(email)
+
+    if stored_otp is not None and str(stored_otp) == str(otp):
+
+        user = User.query.filter_by(
+            email=email
+        ).first()
+
+        if user:
+
+            user.verified = True
+
+            db.session.commit()
+
+        return "OTP Verified Successfully"
+
+    return "Invalid OTP"
+@app.route('/check-db')
+def check_db():
+
+    result = db.session.execute(
+        db.text("SELECT DATABASE();")
+    )
+
+    return str(result.fetchone())
+@app.route('/check-columns')
+def check_columns():
+
+    result = db.session.execute(
+        db.text("DESCRIBE users")
+    )
+
+    columns = result.fetchall()
+
+    return str(columns)
 if __name__ == "__main__":
     app.run(debug=True)

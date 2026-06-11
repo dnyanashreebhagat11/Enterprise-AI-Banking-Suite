@@ -23,3 +23,8 @@ class User(db.Model):
     password = db.Column(
         db.String(255)
     )
+
+    verified = db.Column(
+        db.Boolean,
+        default=False
+    )
